@@ -51,7 +51,7 @@ def crawl(url: str, cookies: dict = {}, headers: dict = defaultHeader):
             continue
     processedImageUrls = pipeline(originalImageUrls)
     
-    return processedImageUrls
+    return {'urls': processedImageUrls}
 
 
 def pipeline(imageUrls: list):
