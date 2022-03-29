@@ -1,6 +1,7 @@
-import requests
-from lxml import etree
+import shortuuid
 from selenium import webdriver
+
+from response import Response
 
 print("spdier文件被加载了")
 
@@ -18,6 +19,14 @@ options.add_argument('--headless')
 # 启动webdriver
 browser = webdriver.Chrome(chrome_options=options)
 
+class Item:
+    
+    def __init__(self, src: str="", alt: str="") -> None:
+        self.id = shortuuid.uuid()
+        self.src = src
+        self.alt = alt
+        
+
 def crawl(url: str, cookies: dict = {}, headers: dict = defaultHeader):
     """爬取网页上的图片链接
 
@@ -30,31 +39,31 @@ def crawl(url: str, cookies: dict = {}, headers: dict = defaultHeader):
         list: 页面上的所有图片链接
     """
     
-    session = requests.Session()
-    # 设置请求头
-    session.headers = headers
-    # 设置cookies
-    for key, value in cookies.items():
-        session.cookies.set(key, value)
-    # response = session.get(url)
-    # html = etree.HTML(response.text)
-    # originalImageUrls = html.xpath("//img/@src")
+    response = Response()
     
-    browser.get(url)
+    try:
+        browser.get(url)
+    except:
+        response.code = -1
+        response.msg = "请输入正确的链接"
     elements = browser.find_elements_by_tag_name('img')
-    originalImageUrls = []
+    originalItems = []
     for e in elements:
         try:
-            originalImageUrls.append(e.get_attribute('src'))
+            newItem = Item(e.get_attribute('src'), e.get_attribute('alt'))
+            originalItems.append(newItem)
         except:
             print('没有获取到img元素的src属性')
             continue
-    processedImageUrls = pipeline(originalImageUrls)
+    processedItems = pipeline(originalItems)
     
-    return {'urls': processedImageUrls}
+    itemsDict = [item.__dict__ for item in processedItems]
+    
+    response.data = itemsDict
+    return response.__dict__
 
 
-def pipeline(imageUrls: list):
+def pipeline(imageItems: list) -> list:
     """管道处理程序，对结果进行处理
 
     Args:
@@ -86,10 +95,14 @@ def pipeline(imageUrls: list):
         return False
     
     # 使用set去重
-    imageUrls = list(set(imageUrls))
+    imageItems = list(set(imageItems))
     # 新建一个容器用于保存结果
     result = []
-    for index, url in enumerate(imageUrls):
+    for item in imageItems:
+        url = item.src
+        # 如果url为none，不会添加到结果集中
+        if not url:
+            continue
         # 如果url不可用，不会添加到结果集中
         if not isAvailable(url):
             continue
@@ -98,7 +111,7 @@ def pipeline(imageUrls: list):
         if isNeedSuppleHttp(url):
             url = 'http:' + url
             
-        result.append(url)
+        result.append(item)
         
     return result
 
