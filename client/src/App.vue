@@ -7,26 +7,34 @@
     </div>
     <div>
       <button class="btn_search" @click="getCrawlImagesApi">获取</button>
+      <button class="btn_clear" @click="clearAll">清空</button>
+      <button class="btn_download" @click="downloadImg">下载</button>
+      <button class="btn_select_all" @click="selectAll">全选</button>
+      <button class="btn_cancel_select_all" @click="cancelSelectAll">全不选</button>
+      <button class="btn_invert_select" @click="invertSelect">反选</button>
     </div>
+
   </div>
   <div class="display">
-    <img v-for="imgSrc in imgUrls" :key="imgSrc.id" :src="imgSrc">
+    <ImgItem v-for="obj in imgObj" v-bind="obj" :key="obj.id" :id="obj.id" @click="clickImg"/>
   </div>
   
 </template>
 
 <script>
 
+import ImgItem from "@/components/ImgItem";
+// import download from 'ly-downloader'
 export default {
   name: 'App',
   components: {
-
+    ImgItem
   },
 
   data () {
     return {
-      imgUrls: [],
-      requestUrls: ''
+      imgObj: [],
+      requestUrls: 'https://www.bilibili.com/'
     }
   },
 
@@ -42,37 +50,93 @@ export default {
       // 将that指定为App组件，否则onload回调函数内部无法访问App组件*重要操作*
       const that = this
       xhr.onload = function() {
-        if (xhr.status === 200) {
-          console.log(xhr.response)
-          // 得到返回结果的原始字符串
-          let listString = JSON.parse(xhr.response).urls
-          // 删除开头和结尾的[]字符
-          let res = listString.slice(1, -1)
-          that.imgUrls = res
-        } else {
-          alert('服务异常！')
+
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            // 得到返回结果的原始字符串
+            let res = JSON.parse(xhr.response)
+            console.log(res)
+            if (res.code !== 0) {
+              alert(res.msg)
+            }
+            let list = res.data.data;
+            list.forEach(item => item.selected = true);
+            that.imgObj = that.imgObj.concat(list);
+          } else {
+            alert('服务异常！');
+          }
         }
       };
-      xhr.send(form);
+      try {
+        xhr.send(form);
+      } catch (e) {
+        alert('服务异常！');
+      }
+    },
+
+    clickImg(event) {
+      let targetSrc = event.target.src;
+      let targetObj = this.imgObj.filter(item => item.src === targetSrc)[0];
+      targetObj.selected = !targetObj.selected;
+    },
+
+    clearAll() {
+      this.imgObj = []
+    },
+
+    /*下载所有已选中的图片*/
+    downloadImg() {
+      // let selectedSrc = [];
+      for (let i = 0; i < this.imgObj.length; i ++) {
+        let obj = this.imgObj[i];
+        if (obj.selected === true) {
+          let targetSrc = obj.src
+          let imgXhr = new XMLHttpRequest();
+          imgXhr.open('GET', targetSrc, true)
+          imgXhr.responseType = 'blob'
+          imgXhr.onload = function() {
+            let url = window.URL.createObjectURL(imgXhr.response)
+            let a = document.createElement('a');
+            a.href = url
+            // 支持的图片文件格式罗列在这里
+            let supportImgFormat = ['jpg', 'png', 'gif'];
+            // 尝试从图片链接中解析出原图的文件格式
+            let targetImgFormat = targetSrc.split('.').pop();
+            // 文件后缀指定一个默认值
+            let fileSuffix = targetImgFormat.toLowerCase() in supportImgFormat ? targetImgFormat : 'png';
+            // 指定文件名
+            let fileName = obj.alt ? obj.alt : obj.id;
+            a.download = fileName + '.' + fileSuffix;
+            a.click()
+          }
+          imgXhr.send()
+        }
+      }
+    },
+
+    /*全选*/
+    selectAll() {
+      this.imgObj.forEach(item => item.selected = true)
+    },
+
+    /*全不选*/
+    cancelSelectAll() {
+      this.imgObj.forEach(item => item.selected = false)
+    },
+
+    /*反选*/
+    invertSelect() {
+      this.imgObj.forEach(item => item.selected = !item.selected)
     }
   }
 }
 </script>
 
 <style>
-  img {
-    height: 90px;
-    aspect-ratio: auto 135 / 90;
-    width: 135px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 4px;
-    text-align: left;
-    margin: 5px;
-  }
 
   div.display {
-    text-align: left;
+    /*text-align: left;*/
+    caret-color: rgba(0,0,0,0);
     margin: 50px 100px 0;
   }
 
@@ -91,16 +155,17 @@ export default {
     border-radius: 3px;
   }
 
-  .btn_search {
+  button {
     width: 30%;
     height: 30px;
     margin-top: 30px;
+    margin-right: 30px;
     border: 0px;
     box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
     border-bottom: 2px solid #f44336;
   }
 
-  .btn_search:hover {
+  button:hover {
     box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
   }
 
