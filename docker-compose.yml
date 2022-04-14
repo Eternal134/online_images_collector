@@ -1,0 +1,26 @@
+version: '3'
+services:
+  web:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: "crawl_server"
+    command: "gunicorn app:app -c gunicorn.conf.py"
+    expose:
+      - 5000
+    ports:
+      - "5000:5000"
+    restart: on-failure
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - C:\my-code\online_images_collector\server:/home/server
+    depends_on:
+      - redis
+
+  redis:
+    image: redis
+    expose:
+      - 6397
+    ports:
+      - "6379:6379"

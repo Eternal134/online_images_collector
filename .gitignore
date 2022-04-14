@@ -3,3 +3,4 @@ server/flask/__pycache__/app.cpython-36.pyc
 server/flask/__pycache__/rest.cpython-36.pyc
 server/flask/__pycache__/spider.cpython-36.pyc
 .vscode/launch.json
+*.pyc
