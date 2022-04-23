@@ -6,7 +6,7 @@ class CpuThreadPool:
     """cpu型线程池，运算密集型
     """
     
-    executor = ThreadPoolExecutor(1)
+    executor = ThreadPoolExecutor(3)
     
     @classmethod
     def submitTaskNoneResult(cls, function, *args):

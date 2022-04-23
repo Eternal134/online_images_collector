@@ -23,7 +23,8 @@ def trigger() -> Response:
         url = request.form['urls']
         # depth参数，默认值为0
         depth = int(request.form.get('depth', 0))
-        return jsonify(DictUtil.objectToDict(executor.trigger(url, requestId, depth)))
+        nextPageLinkText = request.form.get('nextPageLinkText', '')
+        return jsonify(DictUtil.objectToDict(executor.trigger(url, requestId, depth, nextPageLinkText)))
     except Exception as e:
         response = Response(requestId)
         response.buildError(str(e))

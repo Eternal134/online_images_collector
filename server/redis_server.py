@@ -5,7 +5,7 @@ from app_models.model import ObtainResultData, RequestIdItem
 
 class RedisServer:
     
-    redisHost = 'localhost'
+    redisHost = 'redis'
     redisPort = '6379'
     pool = redis.ConnectionPool(host=redisHost, port=redisPort)
     r = redis.Redis(connection_pool=pool)

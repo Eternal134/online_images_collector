@@ -34,6 +34,10 @@ class Spider:
         self.crawledUrlSet = set()
         # 爬取网址最大数量预设
         self.crawledUrlMax = 30
+        # 爬取的图片链接数量
+        self.crawledImageSrcCount = 0
+        # 最大图片链接量：300
+        self.crawledImageSrcCountMax = 300
         
     def handleImages(self):
         
@@ -89,7 +93,7 @@ class Spider:
         print("图片后续处理完成")
         
     
-    def crawl(self, url: str, depth: int=0):
+    def crawl(self, url: str, depth: int=0, nextPageLinkText: str=''):
         """爬取网页上的图片链接
 
         Args:
@@ -102,9 +106,14 @@ class Spider:
         """
         
         print('crawl启动')
+        # 不能同时指定nextPageLinkText和depthc参数
+        if nextPageLinkText!='':
+            depth = 0
         
         # 递归终止条件
-        if depth < 0 or len(self.crawledUrlSet) >= self.crawledUrlMax:
+        if depth < 0 or \
+            len(self.crawledUrlSet) >= self.crawledUrlMax or \
+                self.crawledImageSrcCount >= self.crawledImageSrcCountMax:
             return
         
         try:
@@ -112,18 +121,34 @@ class Spider:
             self.crawledUrlSet.add(url)
         except:
             raise Exception("请输入正确的链接")
-        elements = browser.find_elements_by_tag_name('img')
-        originalItems = []
-        for e in elements:
+        while True:
+            elements = browser.find_elements_by_tag_name('img')
+            for e in elements:
+                try:
+                    imgSrc = e.get_attribute('src')
+                    alt = e.get_attribute('alt')
+                    try:
+                        linkUrl = browser.find_element_by_xpath(f"//*[@alt='{alt}']/ancestor::a").get_attribute('href')
+                    except:
+                        linkUrl = '' 
+                    newItem = Item(imgSrc, alt=alt, webUrl=url, linkUrl=linkUrl)
+                    processedItem = self.pipeline([newItem])
+                    redisServer.saveItemListToRedis(self.requestId, processedItem)
+                    self.crawledImageSrcCount += 1
+                except Exception as e:
+                    print(str(e))
+                    continue
+            # 翻页
+            if len(nextPageLinkText.strip()) == 0:
+                break
             try:
-                imgSrc = e.get_attribute('src')
-                newItem = Item(imgSrc, e.get_attribute('alt'))
-                processedItem = self.pipeline([newItem])
-                redisServer.saveItemListToRedis(self.requestId, processedItem)
-                originalItems.append(newItem)
+                nextPageButton = browser.find_element_by_link_text(nextPageLinkText)
+                if not nextPageButton:
+                    break
+                else:
+                    nextPageButton.click()
             except Exception as e:
-                print(str(e))
-                continue
+                break
         print("图片爬取完成")
         # 开启多线程进行图片处理
         CpuThreadPool.submitTaskNoneResult(self.handleImages)

@@ -11,7 +11,7 @@ redisServer = RedisServer()
     src - Item : 图片链接与对应的数据封装
 """
 
-def trigger(url: str, requestId: str, depth: int):
+def trigger(url: str, requestId: str, depth: int, nextPageLinkText: str):
     """第一次请求，将会运行爬虫去网页爬取图片
 
     Args:
@@ -20,7 +20,7 @@ def trigger(url: str, requestId: str, depth: int):
     """
     spider = Spider(requestId)
     # 异步启动爬虫程序
-    CpuThreadPool.submitTaskNoneResult(spider.crawl, url, depth)
+    CpuThreadPool.submitTaskNoneResult(spider.crawl, url, depth, nextPageLinkText)
     return Response(requestId)
 
 
