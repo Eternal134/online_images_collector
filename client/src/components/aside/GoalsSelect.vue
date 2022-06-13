@@ -51,11 +51,18 @@
                     v-model="checkbox"
                     :class="groupClass"
                 >
-                  <el-checkbox v-for="goal in presetGoals" :key="goal.label" :label="goal.label"
-                               border
-                               class="item button"
-                  >{{ goal.name }}
-                  </el-checkbox>
+                  <template v-for="goal in presetGoals" :key="goal.label">
+                    <el-tooltip>
+                      <template #content>
+                        {{getGoalImgCount(goal)}}
+                      </template>
+                      <el-checkbox :label="goal.label"
+                                   border
+                                   class="item button"
+                      >{{ goal.name }}
+                      </el-checkbox>
+                    </el-tooltip>
+                  </template>
 
                 </el-checkbox-group>
               </template>
@@ -134,6 +141,8 @@ import { Edit } from '@element-plus/icons';
   const widthRange = inject('widthRange');
   // 高度范围
   const heightRange = inject('heightRange');
+  // 每种目标的图像个数统计
+  const prop = defineProps(['imgCount']);
 
   // 多选框选择结果
   const checkbox = ref(goals);
@@ -145,6 +154,7 @@ import { Edit } from '@element-plus/icons';
   const groupClass = reactive({
     group: true
   });
+
 
   class goal {
     constructor(label, name) {
@@ -179,6 +189,12 @@ import { Edit } from '@element-plus/icons';
   /*全选，仅适用于多选模式*/
   function checkAll() {
     checkbox.value = isAllChecked.value ? [] : presetGoals.value.map(item => item.label);
+  }
+
+
+  // 返回某目标的图像数量
+  function getGoalImgCount(goal) {
+    return prop.imgCount.goalsImgCount.get(goal.label) ?? 0
   }
 
   /* ---------------- 侦听器 ---------------- */

@@ -4,7 +4,7 @@
   <el-container>
     <!-- 侧边栏 -->
     <el-aside width="300px">
-      <AsideMenu></AsideMenu>
+      <AsideMenu :imgCount="imgCount"></AsideMenu>
     </el-aside>
     <el-container>
       <!-- 头部 -->
@@ -19,6 +19,7 @@
         </div>
         <div>
           <el-button type="primary" round class="btn_search" @click="triggerImgCrawler">获取</el-button>
+          <el-button type="primary" round class="btn_search" @click="closeInterval">停止</el-button>
           <el-button type="primary" round class="btn_clear" @click="clearAll">清空</el-button>
           <el-button type="primary" round class="btn_download" @click="downloadImg">下载</el-button>
           <el-button type="primary" round class="btn_select_all" @click="selectAll">全选</el-button>
@@ -48,7 +49,7 @@
       </el-main>
       <!--    footer   -->
       <el-footer class="footer">
-        <MyFooter :dataCount="imgObj.length"></MyFooter>
+        <MyFooter :imgCount="imgCount"></MyFooter>
       </el-footer>
     </el-container>
   </el-container>
@@ -62,7 +63,7 @@
   import ImgItem from "@/components/ImgItem";
   import AsideMenu from "@/components/AsideMenu";
   import { Search } from '@element-plus/icons-vue';
-  import { onMounted, provide, ref } from "vue";
+  import {computed, onMounted, provide, ref} from "vue";
   import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
   import MyFooter from "@/components/MyFooter";
 
@@ -70,8 +71,6 @@
 
   // 保存图片结果
   const imgObj = ref([]);
-  // 最大数据量
-  const maxDataCount = 300;
   // 数据更新计数
   let updateOrder = 0;
   // 保存请求地址
@@ -115,8 +114,36 @@
   provide('isShowLoadingErrorImg', isShowLoadingErrorImg)
   provide('widthRange', widthRange)
   provide('heightRange', heightRange)
+  // provide('getImgCount', getImgCount)
 
   /* ---------------- 计算属性 ---------------- */
+
+  const imgCount = computed(() => {
+    // 在页面上显示的图像统计
+    let showedCount = 0;
+    // 选中图像统计
+    let selectedCount = 0;
+    // 每种目标的图像个数统计
+    let goalsImgCount = new Map();
+    for (const imgObjElement of imgObj.value) {
+      if (imgObjElement.isShow === true) {
+        showedCount ++;
+      }
+      if (imgObjElement.selected === true) {
+        selectedCount ++;
+      }
+      for (const goal of imgObjElement.goals) {
+        let goalCount = goalsImgCount.get(goal);
+        goalCount = goalCount ? goalCount + 1 : 1;
+        goalsImgCount.set(goal, goalCount);
+      }
+    }
+    return {
+      'showedCount': showedCount,
+      'selectedCount': selectedCount,
+      'goalsImgCount': goalsImgCount
+    };
+  })
 
   /* ---------------- 消息通知 ---------------- */
 
@@ -235,15 +262,10 @@
           let resList = [];
           for (const item of list) {
             item.selected = false;
-            item.show = true;
             // 如果图片没有被检测出任何一种目标，增加一个'其他'标签
             item.goals = item.goals.length ? item.goals : ['others'];
-            // 如果已经超出最大数据量，结束循环，不再接收数据
-            if (resList.length > maxDataCount) {
-              break
-            } else {
-              resList.push(item)
-            }
+            item.isShow = true;
+            resList.push(item)
           }
           updateOrder = _updateOrder;
           // 新数据覆盖旧数据
@@ -253,7 +275,7 @@
           }
           // 正在加载状态设置为假
           loading.value = false;
-          }
+        }
       } else {
         alert('服务异常！')
       }
@@ -402,7 +424,9 @@
 
   function updateObj(newObj) {
     let target = imgObj.value.filter(_ => _.id==newObj.id)[0];
-    target.selected = newObj.selected;
+    for (let key in newObj) {
+      target[key] = newObj[key];
+    }
   }
 </script>
 

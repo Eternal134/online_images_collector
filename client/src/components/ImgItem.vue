@@ -1,36 +1,37 @@
 <template>
   <div class="block"
+       v-show="modelValue.isShow"
+       @click="clickImg"
        @mouseenter="mouseIn=true"
-       @mouseleave="mouseIn=false"
-       v-show="isShow">
-    <el-image :src="modelValue.src"
-              class="item"
-              :class="{selected : modelValue.selected}"
-              :alt="modelValue.alt"
-              :fit="'scale-down'"
-              lazy
-              @click="clickImg"
-              @error="isLoadSuccess=false"
-              @load="onload"
-    >
-    </el-image>
-    <div class="size">
-      {{ width }} * {{ height }}
-    </div>
-    <!-- 拓展菜单过渡动画 -->
-    <transition name="el-zoom-in-bottom">
-      <div class="expand" v-show="mouseIn">
-        <!-- 页面链接 -->
-        <span class="button">
+       @mouseleave="mouseIn=false">
+    <div>
+      <el-image :src="modelValue.src"
+                class="item"
+                :class="{selected : modelValue.selected}"
+                :alt="modelValue.alt"
+                :fit="'scale-down'"
+                @error="isLoadSuccess=false"
+                @load="onload"
+      >
+      </el-image>
+
+      <!-- 拓展菜单过渡动画 -->
+      <transition name="el-zoom-in-bottom">
+        <div class="expand" v-show="mouseIn">
+          <!-- 页面链接 -->
+          <span class="button">
           <el-link :href="modelValue.linkUrl"
-                    target="_blank"
-                    class="link"
+                   target="_blank"
+                   class="link"
           >
             <el-tooltip
                 class="box-item"
-                content="打开此图片指向的页面（如果有的话）"
                 placement="left"
             >
+              <template #content>
+                打开此图片指向的页面（如果有的话）<br>
+                {{modelValue.linkUrl}}
+              </template>
               <el-button :icon="Link"
                          type="primary">
               </el-button>
@@ -38,16 +39,19 @@
           </el-link>
         </span>
 
-        <span class="button">
+          <span class="button">
           <el-link :href="modelValue.webUrl"
                    target="_blank"
                    class="link"
           >
             <el-tooltip
                 class="box-item"
-                content="打开此图片所在的页面"
                 placement="top"
             >
+              <template #content>
+                打开此图片所在的页面 <br>
+                {{modelValue.webUrl}}
+              </template>
               <el-button :icon="Link"
                          type="primary">
               </el-button>
@@ -55,22 +59,28 @@
           </el-link>
         </span>
 
-        <!-- 单张图片下载 -->
-        <span class="button">
+          <!-- 单张图片下载 -->
+          <span class="button">
         <el-tooltip
             content="下载这张图片"
             placement="right"
         >
           <el-button
-            :icon="Download"
-            type="primary"
-            @click="downloadSingleImg(modelValue.src, modelValue.alt ? modelValue.alt : modelValue.id)"
+              :icon="Download"
+              type="primary"
+              @click="downloadSingleImg(modelValue.src, modelValue.alt ? modelValue.alt : modelValue.id)"
           >
           </el-button>
         </el-tooltip>
       </span>
-      </div>
-    </transition>
+        </div>
+      </transition>
+    </div>
+
+    <input class="input-alt"
+           v-model="objLocal.alt"
+           type="textarea"
+           maxlength="100">
   </div>
 </template>
 
@@ -152,14 +162,26 @@ export default {
     }
   },
 
+  /* ---------- 侦听器 ---------- */
   watch: {
     // 向父组件同步obj
     objLocal: {
       handler(newObjLocal) {
         this.$emit('update:modelValue', newObjLocal)
-        console.log('更新数据')
       },
       deep: true
+    },
+
+    // 同步modelValue prop到objLocal
+    modelValue: {
+      handler(newValue) {
+        this.objLocal = newValue;
+      },
+      deep: true
+    },
+
+    isShow(newVal) {
+      this.objLocal.isShow = newVal;
     }
   }
 
@@ -168,9 +190,13 @@ export default {
 
 <style scoped>
 
-  .size {
+  .input-alt {
     font-size: 14px;
     color: var(--el-text-color-secondary);
+    border: 0px;
+    text-align: center;
+    width: 100%;
+    word-wrap: normal;
   }
 
   .block {
@@ -204,8 +230,7 @@ export default {
 
   .expand {
     width: 100%;
-    height: 40px;
-    bottom:0px;
+    bottom: 60px;
     position: absolute;
     display: flex;
     align-items: center;
@@ -218,6 +243,10 @@ export default {
 
   .expand .button  {
     width: 50%;
+  }
+
+  .expand {
+    height: 30px;
   }
 
 </style>

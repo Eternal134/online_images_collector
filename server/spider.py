@@ -10,7 +10,7 @@ from thread_pool import CpuThreadPool
 """ 设置webdriver启动参数 """
 options = webdriver.ChromeOptions()
 # 不加载图片, 提升速度
-options.add_argument('blink-settings=imagesEnabled=false')
+# options.add_argument('blink-settings=imagesEnabled=false')
 # 不打开ui
 options.add_argument('--headless')
 options.add_argument('--no-sandbox')
@@ -36,8 +36,8 @@ class Spider:
         self.crawledUrlMax = 30
         # 爬取的图片链接数量
         self.crawledImageSrcCount = 0
-        # 最大图片链接量：300
-        self.crawledImageSrcCountMax = 300
+        # 最大图片链接量
+        self.crawledImageSrcCountMax = 5000
         
     def handleImages(self):
         
@@ -50,7 +50,6 @@ class Spider:
         # 起始计时
         time1 = time.time()
         
-        total = 0
         detected = 0
         skipped = 0
         failed = 0
@@ -61,13 +60,13 @@ class Spider:
         if requestIdItem is None:
             return
         srcs = requestIdItem.srcList
+        total = len(srcs)
         if not srcs or len(srcs) == 0:
             return
         items = redisServer.mget(srcs)
         if items is None:
             return
         for item in items:
-            total += 1
             # 如果目标还没有进行过处理
             if item and not item.isHandled:
                 try:
@@ -84,8 +83,9 @@ class Spider:
             # 如果处理过，计数
             else:
                 skipped += 1
-        # 保存处理结果
-        redisServer.saveItemListToRedis(self.requestId, items)
+            # 保存处理结果
+            redisServer.saveItemListToRedis(self.requestId, [item])
+            print(f'requestId={self.requestId} 检测进度：已处理：{detected} 总量：{total}')
         LOG_MSG = f'requestId={self.requestId}'
         # 耗时
         consuming = round(time.time() - time1, 2)
@@ -121,8 +121,9 @@ class Spider:
             self.crawledUrlSet.add(url)
         except:
             raise Exception("请输入正确的链接")
+        
         while True:
-            elements = browser.find_elements_by_tag_name('img')
+            elements = browser.find_elements_by_tag_name('img')[:(self.crawledImageSrcCountMax-self.crawledImageSrcCount)]
             for e in elements:
                 try:
                     imgSrc = e.get_attribute('src')
@@ -138,6 +139,10 @@ class Spider:
                 except Exception as e:
                     print(str(e))
                     continue
+                
+            # 开启多线程进行图片处理
+            CpuThreadPool.submitTaskNoneResult(self.handleImages)
+            
             # 翻页
             if len(nextPageLinkText.strip()) == 0:
                 break
@@ -150,8 +155,6 @@ class Spider:
             except Exception as e:
                 break
         print("图片爬取完成")
-        # 开启多线程进行图片处理
-        CpuThreadPool.submitTaskNoneResult(self.handleImages)
         
         if depth == 0:
             return

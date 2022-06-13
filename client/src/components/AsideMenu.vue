@@ -6,7 +6,7 @@
   </div>
 
   <div v-show="!isCollapse">
-    <GoalsSelect></GoalsSelect>
+    <GoalsSelect :imgCount="imgCount"></GoalsSelect>
   </div>
 
   <div v-show="isCollapse">
@@ -22,6 +22,8 @@
 
   // 是否折叠
   const isCollapse = ref(true);
+
+  defineProps(['imgCount'])
 
 </script>
 
